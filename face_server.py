@@ -36,7 +36,7 @@ app.add_middleware(
 
 app.include_router(face_api.router)
 
-logger = LoggerManager(logger_name="server").get_logger()
+logger = LoggerManager(logger_name="face_server").get_logger()
 nacos_logger = logging.getLogger('nacos.client')
 nacos_logger.setLevel(logging.WARNING)
 nacos_serverutils: NacosServerUtils = None  # 定义变量以便在事件处理器中引用

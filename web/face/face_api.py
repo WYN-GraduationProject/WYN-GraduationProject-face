@@ -1,9 +1,8 @@
 import os
+import uuid
+
 import cv2
 import numpy as np
-import uuid
-from typing import Tuple
-
 from fastapi import APIRouter, Depends, UploadFile, File
 from fastapi.responses import FileResponse
 from starlette.background import BackgroundTask
@@ -55,8 +54,8 @@ async def process_video(video_model: VideoModel, grpc_manager) -> str | None:
     """
     global face_cascade
     cap = cv2.VideoCapture(video_model.path + video_model.filename)
-    video_model.fps = cap.get(cv2.CAP_PROP_FPS)
-    logger.info(f"Video FPS: {video_model.fps}")
+    video_model.fps = cap.get(cv2.CAP_PROP_FPS) > 100 and 30 or cap.get(cv2.CAP_PROP_FPS)
+    logger.info(f"视频帧率为: {video_model.fps}")
     if not cap.isOpened():
         logger.error(f"打开文件失败: {video_model.path + video_model.filename}")
         return
@@ -95,31 +94,16 @@ async def process_video(video_model: VideoModel, grpc_manager) -> str | None:
                 face_pro_img_bytes = await process_faces_in_frame(frame, face_cascade)
                 video_model.data.append(face_pro_img_bytes)
         finally:
+            logger.info("视频流处理完成")
             await video_model.save()
             cap.release()
             return video_model.path + video_model.filename
 
 
-async def save_video(video: UploadFile) -> VideoModel:
-    video_id = str(uuid.uuid4())
-    video_filename = f"{video_id}.mp4"
-    video_save_path = f"video_data/original/"
-    video_model = VideoModel(video_save_path, video_filename, video_id, [], 30)
-    # 创建保存视频的目录
-    os.makedirs(video_save_path, exist_ok=True)
-    # 保存上传的视频到文件
-    filepath = os.path.join(video_save_path, video_filename)
-    with open(filepath, "wb") as f:
-        f.write(await video.read())
-    # 打印文件路径和视频文件名
-    logger.info(f"Saved video to {filepath}")
-    return video_model
-
-
 @router.post("/test")
 async def upload_video(video: UploadFile = File(...), grpc_manager: GrpcManager = Depends(get_grpc_manager)):
     # 传递视频文件路径给处理函数
-    video_model = await save_video(video)
+    video_model = await VideoModel.http_video_save(video)
     file_name = await process_video(video_model, grpc_manager)
     response = FileResponse(file_name, media_type="video/mp4", filename="video.mp4",
                             background=BackgroundTask(lambda: os.remove(file_name)))
