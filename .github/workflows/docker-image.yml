@@ -25,8 +25,8 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: 写入仓库名
-        run: echo "GITHUB_REPOSITORY_NAME_PART=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
+      - name: Extract and lowercase repository name
+        run: echo "GITHUB_REPOSITORY_NAME_PART=${GITHUB_REPOSITORY##*/}" | tr '[:upper:]' '[:lower:]' >> $GITHUB_ENV
 
       - name: Build and push
         uses: docker/build-push-action@v4
