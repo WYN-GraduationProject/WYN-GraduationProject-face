@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 切出分支
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
 
       - name: 登录 Docker Hub
         uses: docker/login-action@v2
@@ -27,6 +27,8 @@ jobs:
 
       - name: Build and push
         uses: docker/build-push-action@v4
+        env:
+          GITHUB_REPOSITORY_NAME_PART: ${{ github.repository_name }}
         with:
           context: .
           file: ./Dockerfile
@@ -34,4 +36,4 @@ jobs:
             linux/amd64
             linux/arm64
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.GITHUB_REPOSITORY_NAME_PART }}:latest
+          tags: ${{ secrets.DOCKERHUB_NAME }}/${{ env.GITHUB_REPOSITORY_NAME_PART }}:latest
