@@ -25,7 +25,7 @@ jobs:
       - name: 初始化 Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: docker 原数据
+      - name: docker 元数据
         id: meta
         uses: docker/metadata-action@v4
         with:
