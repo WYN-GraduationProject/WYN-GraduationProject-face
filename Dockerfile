@@ -7,7 +7,7 @@ ENV TZ=Asia/Shanghai
 COPY requirements.txt /src/
 
 WORKDIR /src
-RUN pip install -i -r requirements.txt
+RUN pip install -r requirements.txt
 
 COPY . .
 
