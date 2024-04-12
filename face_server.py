@@ -14,13 +14,13 @@ from web.face import face_api
 async def app_lifespan(app: FastAPI):
     global nacos_serverutils
     nacos_manager = NacosManager()
-    nacos_serverutils = nacos_manager.get_server_utils("face-service", "localhost", 8001)
+    nacos_serverutils = nacos_manager.get_server_utils("face-service", "0.0.0.0", 8001)
     await nacos_serverutils.register_service()
     asyncio.create_task(nacos_serverutils.beat(10))
     try:
         yield
     finally:
-        await nacos_serverutils.deregister_service()
+        nacos_serverutils.deregister_service()
 
 
 app = FastAPI(lifespan=app_lifespan)
@@ -43,4 +43,4 @@ nacos_serverutils: NacosServerUtils = None  # 定义变量以便在事件处理�
 
 if __name__ == "__main__":
     logger.info("服务启动...")
-    uvicorn.run(app, host="localhost", port=8001)
+    uvicorn.run(app, host="0.0.0.0", port=8001)
