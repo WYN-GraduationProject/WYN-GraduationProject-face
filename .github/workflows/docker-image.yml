@@ -13,8 +13,11 @@ jobs:
       - name: 切出分支
         uses: actions/checkout@v3
 
-      - name: 克隆 python_common 库
-        run: git clone https://github.com/WYN-GraduationProject/WYN-GraduationProject-common.git ./WYN-GraduationProject-common
+      - name: 克隆 python_common 库并切出develop 分支
+        run: |
+          git clone https://github.com/WYN-GraduationProject/WYN-GraduationProject-common.git ./WYN-GraduationProject-common
+          cd ./WYN-GraduationProject-common
+          git checkout develop
 
       - name: 登录 Docker Hub
         uses: docker/login-action@v3
