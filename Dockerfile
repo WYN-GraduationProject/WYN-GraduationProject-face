@@ -11,7 +11,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     libgl1-mesa-glx \
     && rm -rf /var/lib/apt/lists/* \
-    && pip install -r /src/requirements.txt
+    && pip install -r /app/requirements.txt
 
 COPY . .
 
