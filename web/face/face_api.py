@@ -59,6 +59,9 @@ async def process_video(video_model: VideoModel, grpc_manager) -> str | None:
     if not cap.isOpened():
         logger.error(f"打开文件失败: {video_model.path + video_model.filename}")
         return
+
+    rpc_failed = False
+
     async with grpc_manager.get_stub('video_pre_service') as stub:
         async def request_generator():
             """
@@ -66,15 +69,16 @@ async def process_video(video_model: VideoModel, grpc_manager) -> str | None:
             :return: 视频处理的请求
             """
             while cap.isOpened():
-                ret, frame = cap.read()
-                if not ret:
+                temp_ret, temp_frame = cap.read()
+                if not temp_ret:
                     break
-                _, img = cv2.imencode('.jpg', frame)
+                _, img = cv2.imencode('.jpg', temp_frame)
                 img_bytes = img.tobytes()
                 yield VideoFrame(data=img_bytes, is_final=False, video_id=video_model.id)
             yield VideoFrame(is_final=True, fps=video_model.fps, video_id=video_model.id)
 
         try:
+            logger.info("正在 RPC 调用预处理视频服务...")
             response_stream = stub.ProcessVideo(request_generator())
             async for response in response_stream:
                 response_frame = np.frombuffer(response.data, dtype=np.uint8)
@@ -84,20 +88,23 @@ async def process_video(video_model: VideoModel, grpc_manager) -> str | None:
                 face_pro_img_bytes = await process_faces_in_frame(response_frame, face_cascade)
                 video_model.data.append(face_pro_img_bytes)
         except Exception as e:
-            # gRPC服务调用失败，不进行预处理，目前返回原视频路径
             logger.error(f"RPC预处理视频失败: {e}")
-            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            rpc_failed = True
+
+        if rpc_failed:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, 1)
             while True:
                 ret, frame = cap.read()
+                logger.info(f"ret: {ret}")
                 if not ret:
                     break
                 face_pro_img_bytes = await process_faces_in_frame(frame, face_cascade)
                 video_model.data.append(face_pro_img_bytes)
-        finally:
-            logger.info("视频流处理完成")
-            await video_model.save()
-            cap.release()
-            return video_model.path + video_model.filename
+
+        logger.info("视频流处理完成")
+        await video_model.save()
+        cap.release()
+        return video_model.path + video_model.filename
 
 
 @router.post("/test")
@@ -105,6 +112,6 @@ async def upload_video(video: UploadFile = File(...), grpc_manager: GrpcManager 
     # 传递视频文件路径给处理函数
     video_model = await VideoModel.http_video_save(video)
     file_name = await process_video(video_model, grpc_manager)
-    response = FileResponse(file_name, media_type="video/mp4", filename="video.mp4",
-                            background=BackgroundTask(lambda: os.remove(file_name)))
-    return response
+    if file_name is None:
+        return {"message": "视频处理失败"}
+    return FileResponse(file_name, media_type="video/mp4", filename="video.mp4")
