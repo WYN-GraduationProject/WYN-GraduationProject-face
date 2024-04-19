@@ -17,6 +17,6 @@ COPY . .
 
 ENV PYTHONPATH="${PYTHONPATH}:./WYN-GraduationProject-common/python_common"
 
-EXPOSE 8001
+EXPOSE 50002
 
 CMD ["python", "face_server.py"]

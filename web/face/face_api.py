@@ -1,11 +1,7 @@
-import os
-import uuid
-
 import cv2
 import numpy as np
 from fastapi import APIRouter, Depends, UploadFile, File
 from fastapi.responses import FileResponse
-from starlette.background import BackgroundTask
 
 from proto.video_service.video_model_pb2 import VideoFrame
 from utils.model.video import VideoModel
